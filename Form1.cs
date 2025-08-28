@@ -9,11 +9,10 @@ namespace PrintToPrinter
             InitializeComponent();
         }
 
+        public string filePath { get; private set; }
+
         private void printDocument1_PrintPage(object sender, PrintPageEventArgs e)
         {
-            // Path to a file you want to print
-            string filePath = @"C:\Users\keaga\Downloads\new1.txt";
-
             // Read text from the file
             string text = File.ReadAllText(filePath);
 
@@ -28,25 +27,54 @@ namespace PrintToPrinter
                 e.MarginBounds.Height
             );
 
+            // Debug check
+            MessageBox.Show("About to send to printer!");
+
             // Print the text
-            e.Graphics.DrawString(text, font, Brushes.Black, area);
+            if (e.Graphics != null)
+            {
+                e.Graphics.DrawString(text, font, Brushes.Black, area);
+            }
 
-            // Tell the printer there’s only one page
+            // theres only one page
             e.HasMorePages = false;
-
         }
 
         private void Print_Click(object sender, EventArgs e)
         {
-            // Attach event handler
-            printDocument1.PrintPage += new PrintPageEventHandler(printDocument1_PrintPage);
+            // Let the user pick a file
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Filter = "Text Files|*.txt|All Files|*.*";
 
-            // Show print dialog
-            PrintDialog printDialog = new PrintDialog();
-            if (printDialog.ShowDialog() == DialogResult.OK)
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                printDocument1.PrinterSettings = printDialog.PrinterSettings;
-                printDocument1.Print();
+                filePath = openFileDialog.FileName;
+
+                // Force A4 size if needed
+                printDocument1.DefaultPageSettings.PaperSize = new PaperSize("A4", 827, 1169);
+
+                // Explicitly attach the event handler
+                printDocument1.PrintPage += new PrintPageEventHandler(printDocument1_PrintPage);
+
+                PrintDialog printDialog = new PrintDialog();
+                if (printDialog.ShowDialog() == DialogResult.OK)
+                {
+                    printDocument1.PrinterSettings = printDialog.PrinterSettings;
+
+                    try
+                    {
+                        printDocument1.Print();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error printing: " + ex.Message);
+                    }
+                    finally
+                    {
+                        //Detach handler so multiple clicks don’t duplicate it
+                        printDocument1.PrintPage -= new PrintPageEventHandler(printDocument1_PrintPage);
+                    }
+                }
             }
         }
     }
